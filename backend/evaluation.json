@@ -1,0 +1,26 @@
+[
+  {
+    "question": "What is React?",
+    "expected_document": "react.txt"
+  },
+  {
+    "question": "What is TypeScript?",
+    "expected_document": "typescript.txt"
+  },
+  {
+    "question": "What is Java?",
+    "expected_document": "java.txt"
+  },
+  {
+    "question": "What is AWS?",
+    "expected_document": "aws.txt"
+  },
+  {
+    "question": "What is Docker?",
+    "expected_document": "docker.txt"
+  },
+  {
+    "question": "What is AI?",
+    "expected_document": "ai.txt"
+  }
+]
