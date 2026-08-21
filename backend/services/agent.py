@@ -80,6 +80,7 @@ def _execute_tool(tool_name: str, arguments: dict, contextual_query: str) -> dic
             return {
                 "answer": f"Invalid tool '{tool_name}'. Allowed tools: {ALLOWED_TOOL_NAMES}",
                 "sources": [],
+                "retrieval_time_ms": 0.0,
             }
 
         if tool_name == "get_user_courses":
@@ -91,7 +92,11 @@ def _execute_tool(tool_name: str, arguments: dict, contextual_query: str) -> dic
                 arguments.get("query", contextual_query)
             )
     except Exception as exc:
-        return {"answer": f"Tool execution error: {exc}", "sources": []}
+        return {
+            "answer": f"Tool execution error: {exc}",
+            "sources": [],
+            "retrieval_time_ms": 0.0,
+        }
 
 
 def _build_profile_text(preferences: dict) -> str:
@@ -150,6 +155,14 @@ def handle_user_query(query: str, history: list | None = None) -> dict:
         tool_result = _execute_tool(tool_name, arguments, contextual_query)
         final_answer = _summarize(tool_name, tool_result, query, history, preferences)
 
-        return {"answer": final_answer, "sources": tool_result.get("sources", [])}
+        return {
+            "answer": final_answer,
+            "sources": tool_result.get("sources", []),
+            "retrieval_time_ms": tool_result.get("retrieval_time_ms", 0.0),
+        }
     except Exception as exc:
-        return {"answer": f"Agent error: {exc}", "sources": []}
+        return {
+            "answer": f"Agent error: {exc}",
+            "sources": [],
+            "retrieval_time_ms": 0.0,
+        }

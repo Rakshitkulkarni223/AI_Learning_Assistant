@@ -32,7 +32,26 @@ interface MemoryResponse {
   preferences: Record<string, string>
 }
 
-type Tab = 'chat' | 'search' | 'courses' | 'memory'
+interface DebugStats {
+  total_requests: number
+  failed_requests: number
+  average_latency_ms: number
+  average_retrieval_time_ms: number
+  average_llm_time_ms: number
+  total_tokens: number
+  recent: {
+    request_id: string
+    timestamp: string
+    question: string
+    retrieval_time: number
+    llm_time: number
+    total_time: number
+    tokens: number
+    status: string
+  }[]
+}
+
+type Tab = 'chat' | 'search' | 'courses' | 'memory' | 'debug'
 
 function App() {
   const [activeTab, setActiveTab] = useState<Tab>('chat')
@@ -54,6 +73,8 @@ function App() {
 
   const [health, setHealth] = useState<string | null>(null)
 
+  const [stats, setStats] = useState<DebugStats | null>(null)
+
   const checkHealth = async () => {
     try {
       const res = await fetch(`${API_URL}/health`)
@@ -72,6 +93,16 @@ function App() {
       setPreferences(data.preferences)
     } catch (err) {
       console.error('Failed to load preferences:', err)
+    }
+  }
+
+  const loadStats = async () => {
+    try {
+      const res = await fetch(`${API_URL}/debug/stats`)
+      const data: DebugStats = await res.json()
+      setStats(data)
+    } catch (err) {
+      console.error('Failed to load debug stats:', err)
     }
   }
 
@@ -104,6 +135,7 @@ function App() {
       setSources(data.sources ?? [])
       setMetrics(data.metrics)
       setSessionId(data.session_id)
+      await loadStats()
     } catch (err) {
       setAnswer('Something went wrong. Is the backend running?')
       setSources([])
@@ -137,6 +169,7 @@ function App() {
 
       const data: SearchResponse = await res.json()
       setSearchResults(data.results)
+      await loadStats()
     } catch (err) {
       console.error('Search failed:', err)
       setSearchResults([])
@@ -191,6 +224,7 @@ function App() {
     try {
       checkHealth()
       loadPreferences()
+      loadStats()
     } catch (err) {
       console.error('useEffect error:', err)
     }
@@ -204,7 +238,7 @@ function App() {
       </header>
 
       <nav className="tabs">
-        {(['chat', 'search', 'courses', 'memory'] as Tab[]).map((tab) => (
+        {(['chat', 'search', 'courses', 'memory', 'debug'] as Tab[]).map((tab) => (
           <button
             key={tab}
             className={activeTab === tab ? 'tab active' : 'tab'}
@@ -325,6 +359,56 @@ function App() {
               </>
             ) : (
               <p>No saved preferences yet.</p>
+            )}
+          </section>
+        )}
+
+        {activeTab === 'debug' && (
+          <section className="section">
+            <h2>Debug / AI Stats</h2>
+            {stats ? (
+              <>
+                <div className="stats-grid">
+                  <div className="stat-card">
+                    <strong>Total requests</strong>
+                    <span>{stats.total_requests}</span>
+                  </div>
+                  <div className="stat-card">
+                    <strong>Failed requests</strong>
+                    <span>{stats.failed_requests}</span>
+                  </div>
+                  <div className="stat-card">
+                    <strong>Average latency</strong>
+                    <span>{stats.average_latency_ms.toFixed(2)} ms</span>
+                  </div>
+                  <div className="stat-card">
+                    <strong>Average retrieval time</strong>
+                    <span>{stats.average_retrieval_time_ms.toFixed(2)} ms</span>
+                  </div>
+                  <div className="stat-card">
+                    <strong>Average LLM time</strong>
+                    <span>{stats.average_llm_time_ms.toFixed(2)} ms</span>
+                  </div>
+                  <div className="stat-card">
+                    <strong>Total tokens</strong>
+                    <span>{stats.total_tokens}</span>
+                  </div>
+                </div>
+
+                <h3>Recent requests</h3>
+                <ul className="recent-list">
+                  {stats.recent.map((req) => (
+                    <li key={req.request_id}>
+                      <strong>{req.status}</strong> — {req.question}<br />
+                      <small>
+                        total {req.total_time.toFixed(0)}ms | retrieval {req.retrieval_time.toFixed(0)}ms | llm {req.llm_time.toFixed(0)}ms | tokens {req.tokens}
+                      </small>
+                    </li>
+                  ))}
+                </ul>
+              </>
+            ) : (
+              <p>Loading stats...</p>
             )}
           </section>
         )}

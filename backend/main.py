@@ -1,3 +1,4 @@
+import time
 import uuid
 
 from fastapi import Depends, FastAPI, HTTPException
@@ -9,6 +10,7 @@ from services.embeddings import get_collection
 from services.llm import aggregate_metrics, reset_metrics
 from services.long_term_memory import clear_preferences, get_preferences, store_preference
 from services.memory_extractor import extract_preference
+from services.observability import get_stats, record_request
 from services.rate_limiter import rate_limit
 from services.short_term_memory import add_message, get_messages
 
@@ -36,6 +38,10 @@ class MemoryRequest(BaseModel):
     fact: str
 
 
+def _now_ms() -> float:
+    return time.time() * 1000
+
+
 @app.get("/health")
 def health_check():
     """Return a simple health status."""
@@ -45,9 +51,23 @@ def health_check():
         raise HTTPException(status_code=500, detail=str(exc))
 
 
+@app.get("/debug/stats")
+def debug_stats():
+    """Return in-memory observability statistics."""
+    try:
+        return get_stats()
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=str(exc))
+
+
 @app.post("/chat")
 def chat(request: ChatRequest, _client: str = Depends(rate_limit)):
     """Route the user message through the agent with short-term memory."""
+    request_id = str(uuid.uuid4())
+    start_ms = _now_ms()
+    result = None
+    status = "success"
+
     try:
         user_message = request.message.strip()
 
@@ -76,13 +96,30 @@ def chat(request: ChatRequest, _client: str = Depends(rate_limit)):
             "session_id": session_id,
             "metrics": metrics,
         }
-    except Exception as exc:
-        raise HTTPException(status_code=500, detail=str(exc))
+    except Exception:
+        status = "failed"
+        raise
+    finally:
+        total_time = _now_ms() - start_ms
+        metrics = aggregate_metrics()
+        record_request(
+            request_id=request_id,
+            question=request.message or "",
+            retrieval_time=result.get("retrieval_time_ms", 0.0) if result else 0.0,
+            llm_time=metrics["latency_ms"],
+            total_time=total_time,
+            tokens=metrics["total_tokens"],
+            status=status,
+        )
 
 
 @app.post("/search")
 def search(request: SearchRequest, _client: str = Depends(rate_limit)):
     """Find the most similar chunks for the user's query."""
+    request_id = str(uuid.uuid4())
+    start_ms = _now_ms()
+    status = "success"
+
     try:
         query = request.query.strip()
 
@@ -90,11 +127,14 @@ def search(request: SearchRequest, _client: str = Depends(rate_limit)):
             return {"results": []}
 
         collection = get_collection()
+
+        retrieval_start = _now_ms()
         matches = collection.query(
             query_texts=[query],
             n_results=3,
             include=["documents", "metadatas", "distances"],
         )
+        retrieval_time = _now_ms() - retrieval_start
 
         results = []
         for i, doc in enumerate(matches["documents"][0]):
@@ -107,8 +147,19 @@ def search(request: SearchRequest, _client: str = Depends(rate_limit)):
             )
 
         return {"results": results}
-    except Exception as exc:
-        raise HTTPException(status_code=500, detail=str(exc))
+    except Exception:
+        status = "failed"
+        raise
+    finally:
+        record_request(
+            request_id=request_id,
+            question=request.query or "",
+            retrieval_time=retrieval_time if "retrieval_time" in locals() else 0.0,
+            llm_time=0.0,
+            total_time=_now_ms() - start_ms,
+            tokens=0,
+            status=status,
+        )
 
 
 @app.post("/memory")

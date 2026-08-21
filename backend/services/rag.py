@@ -1,4 +1,5 @@
 import os
+import time
 
 from dotenv import load_dotenv
 
@@ -22,16 +23,19 @@ def answer_with_rag(query: str) -> dict:
     try:
         collection = get_collection()
 
+        retrieval_start = time.time()
         matches = collection.query(
             query_texts=[query],
             n_results=3,
             include=["documents", "metadatas", "distances"],
         )
+        retrieval_time_ms = (time.time() - retrieval_start) * 1000
 
         if not matches["documents"] or not matches["documents"][0]:
             return {
                 "answer": "I don't know based on the available documents.",
                 "sources": [],
+                "retrieval_time_ms": retrieval_time_ms,
             }
 
         best_score = matches["distances"][0][0]
@@ -40,6 +44,7 @@ def answer_with_rag(query: str) -> dict:
             return {
                 "answer": "I don't know based on the available documents.",
                 "sources": [],
+                "retrieval_time_ms": retrieval_time_ms,
             }
 
         context = "\n\n---\n\n".join(matches["documents"][0])
@@ -62,6 +67,10 @@ def answer_with_rag(query: str) -> dict:
 
         result = call_llm(prompt, system_prompt=RAG_SYSTEM_PROMPT)
 
-        return {"answer": result["answer"], "sources": sources}
+        return {
+            "answer": result["answer"],
+            "sources": sources,
+            "retrieval_time_ms": retrieval_time_ms,
+        }
     except Exception as exc:
-        return {"answer": f"RAG error: {exc}", "sources": []}
+        return {"answer": f"RAG error: {exc}", "sources": [], "retrieval_time_ms": 0.0}
