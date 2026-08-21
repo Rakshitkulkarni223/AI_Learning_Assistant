@@ -63,7 +63,7 @@ function App() {
 
       const data: ChatResponse = await res.json()
       setAnswer(data.answer)
-      setSources(data.sources)
+      setSources(data.sources ?? [])
     } catch (err) {
       setAnswer('Something went wrong. Is the backend running?')
       setSources([])

@@ -2,8 +2,8 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
+from services.agent import handle_user_query
 from services.embeddings import get_collection
-from services.rag import answer_with_rag
 
 app = FastAPI(title="AI Learning Assistant", version="0.1.0")
 
@@ -35,14 +35,14 @@ def health_check():
 
 @app.post("/chat")
 def chat(request: ChatRequest):
-    """Answer the user's question using RAG."""
+    """Route the user message through the simple agent."""
     try:
         user_message = request.message.strip()
 
         if not user_message:
             return {"answer": "Please send a message.", "sources": []}
 
-        return answer_with_rag(user_message)
+        return handle_user_query(user_message)
     except Exception as exc:
         raise HTTPException(status_code=500, detail=str(exc))
 
