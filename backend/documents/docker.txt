@@ -1,0 +1,9 @@
+Docker is a tool that packages an application and its dependencies into a lightweight, portable container.
+
+A container is an isolated environment that runs on a host operating system. Unlike a virtual machine, it does not include a full operating system, so it is more lightweight.
+
+A Docker image is a blueprint for a container. A container is a running instance of an image.
+
+Docker makes it easier to ensure that software runs the same way on a developer's laptop and in production.
+
+Developers define containers using a Dockerfile, which is a text file that lists instructions for building the image.

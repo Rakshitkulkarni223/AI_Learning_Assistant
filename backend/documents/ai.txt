@@ -1,0 +1,9 @@
+Artificial Intelligence, or AI, is the field of computer science focused on creating systems that can perform tasks that usually require human intelligence.
+
+Machine Learning is a subset of AI in which systems learn patterns from data instead of being explicitly programmed for every rule.
+
+Large Language Models, or LLMs, are a type of machine learning model trained on large amounts of text to understand and generate human language.
+
+RAG, or Retrieval-Augmented Generation, is a technique that gives an LLM relevant documents from a knowledge base before it generates an answer.
+
+AI systems can make mistakes, so it is important to evaluate their outputs and not blindly trust their answers.

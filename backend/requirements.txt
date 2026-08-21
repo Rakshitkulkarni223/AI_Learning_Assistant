@@ -3,3 +3,5 @@ uvicorn
 pydantic
 python-dotenv
 openai>=1.37,<2.0
+chromadb
+langchain-text-splitters

@@ -1,0 +1,9 @@
+React is a JavaScript library for building user interfaces, especially single-page applications.
+
+It lets developers create reusable UI components, which makes large applications easier to manage.
+
+React uses a virtual DOM to update the actual DOM efficiently. When state changes, React compares the virtual DOM with the real DOM and updates only what is necessary.
+
+A component in React can be a function that returns JSX, or a class that extends React.Component. Functional components are now preferred because they work cleanly with hooks.
+
+Hooks like useState and useEffect allow function components to manage state and side effects without classes.

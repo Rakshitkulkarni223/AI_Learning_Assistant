@@ -1,0 +1,9 @@
+TypeScript is a superset of JavaScript that adds static typing to the language.
+
+It allows developers to define types for variables, function parameters, and return values. This helps catch errors at compile time before the code runs.
+
+TypeScript is transpiled into plain JavaScript, so it runs anywhere JavaScript runs, including browsers and Node.js.
+
+Interfaces and types are two ways to describe the shape of an object. Interfaces can be extended, and types can create unions and intersections.
+
+Many large projects use TypeScript because it improves code quality, makes refactoring safer, and gives better autocomplete in IDEs.

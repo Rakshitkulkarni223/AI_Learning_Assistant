@@ -1,0 +1,9 @@
+Java is a high-level, object-oriented programming language designed to be platform independent.
+
+Java code is compiled into bytecode that runs on the Java Virtual Machine, or JVM. This means a Java program can run on any device that has a JVM.
+
+Object-oriented principles like classes, objects, inheritance, polymorphism, and encapsulation are core to Java.
+
+Java is widely used for building enterprise applications, Android apps, and large backend systems.
+
+The Java ecosystem includes many tools and frameworks, such as Spring Boot, which helps developers build production-ready web applications quickly.

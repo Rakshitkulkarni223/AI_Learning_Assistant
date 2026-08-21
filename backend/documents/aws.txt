@@ -1,0 +1,9 @@
+Amazon Web Services, or AWS, is a cloud computing platform that provides a wide range of services over the internet.
+
+AWS offers compute power through Amazon EC2, storage through Amazon S3, and managed databases through Amazon RDS.
+
+Users can rent computing resources instead of buying and maintaining physical servers. This is called Infrastructure as a Service, or IaaS.
+
+AWS also provides higher-level services like AWS Lambda, which lets developers run code without managing servers.
+
+Understanding AWS is useful for cloud engineers, DevOps engineers, and backend developers who build scalable systems.
