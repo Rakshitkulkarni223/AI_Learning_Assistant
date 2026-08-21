@@ -2,6 +2,7 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
+from services.embeddings import get_collection
 from services.llm import call_llm
 
 app = FastAPI(title="AI Learning Assistant", version="0.1.0")
@@ -17,6 +18,10 @@ app.add_middleware(
 
 class ChatRequest(BaseModel):
     message: str
+
+
+class SearchRequest(BaseModel):
+    query: str
 
 
 @app.get("/health")
@@ -39,5 +44,36 @@ def chat(request: ChatRequest):
 
         answer = call_llm(user_message)
         return {"answer": answer}
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=str(exc))
+
+
+@app.post("/search")
+def search(request: SearchRequest):
+    """Find the most similar chunks for the user's query."""
+    try:
+        query = request.query.strip()
+
+        if not query:
+            return {"results": []}
+
+        collection = get_collection()
+        matches = collection.query(
+            query_texts=[query],
+            n_results=3,
+            include=["documents", "metadatas", "distances"],
+        )
+
+        results = []
+        for i, doc in enumerate(matches["documents"][0]):
+            results.append(
+                {
+                    "document": matches["metadatas"][0][i]["source"],
+                    "text": doc,
+                    "score": matches["distances"][0][i],
+                }
+            )
+
+        return {"results": results}
     except Exception as exc:
         raise HTTPException(status_code=500, detail=str(exc))
