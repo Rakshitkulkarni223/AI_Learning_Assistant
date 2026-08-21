@@ -113,3 +113,21 @@ body {
   margin: 0;
   color: #555;
 }
+
+.sources {
+  margin-top: 1rem;
+  padding: 0.8rem;
+  background: #f0fff4;
+  border-left: 4px solid #2ea043;
+  border-radius: 4px;
+}
+
+.sources h4 {
+  margin: 0 0 0.5rem 0;
+}
+
+.sources ul {
+  margin: 0;
+  padding-left: 1.2rem;
+  color: #555;
+}

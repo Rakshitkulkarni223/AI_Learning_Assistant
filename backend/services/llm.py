@@ -8,13 +8,13 @@ load_dotenv()
 LLM_MODEL = os.getenv("LLM_MODEL", "llama3")
 OPENAI_BASE_URL = os.getenv("OPENAI_BASE_URL")
 
-SYSTEM_PROMPT = (
+DEFAULT_SYSTEM_PROMPT = (
     "You are a helpful AI Learning Assistant. "
     "Keep answers clear, concise, and beginner-friendly."
 )
 
 
-def call_llm(user_message: str) -> str:
+def call_llm(user_message: str, system_prompt: str | None = None) -> str:
     """Send a user message to an OpenAI-compatible API and return the text answer."""
     try:
         api_key = os.getenv("OPENAI_API_KEY")
@@ -31,7 +31,10 @@ def call_llm(user_message: str) -> str:
         response = client.chat.completions.create(
             model=LLM_MODEL,
             messages=[
-                {"role": "system", "content": SYSTEM_PROMPT},
+                {
+                    "role": "system",
+                    "content": system_prompt if system_prompt else DEFAULT_SYSTEM_PROMPT,
+                },
                 {"role": "user", "content": user_message},
             ],
             temperature=0.7,

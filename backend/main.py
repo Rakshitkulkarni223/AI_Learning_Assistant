@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
 from services.embeddings import get_collection
-from services.llm import call_llm
+from services.rag import answer_with_rag
 
 app = FastAPI(title="AI Learning Assistant", version="0.1.0")
 
@@ -35,15 +35,14 @@ def health_check():
 
 @app.post("/chat")
 def chat(request: ChatRequest):
-    """Send the user message to the LLM and return the generated answer."""
+    """Answer the user's question using RAG."""
     try:
         user_message = request.message.strip()
 
         if not user_message:
-            return {"answer": "Please send a message."}
+            return {"answer": "Please send a message.", "sources": []}
 
-        answer = call_llm(user_message)
-        return {"answer": answer}
+        return answer_with_rag(user_message)
     except Exception as exc:
         raise HTTPException(status_code=500, detail=str(exc))
 

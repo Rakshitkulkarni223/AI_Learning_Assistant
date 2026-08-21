@@ -5,6 +5,10 @@ const API_URL = 'http://127.0.0.1:8000'
 
 interface ChatResponse {
   answer: string
+  sources: {
+    document: string
+    score: number
+  }[]
 }
 
 interface SearchResponse {
@@ -22,6 +26,7 @@ function App() {
 
   const [message, setMessage] = useState('')
   const [answer, setAnswer] = useState('')
+  const [sources, setSources] = useState<ChatResponse['sources']>([])
   const [loading, setLoading] = useState(false)
 
   const [query, setQuery] = useState('')
@@ -47,6 +52,7 @@ function App() {
 
     setLoading(true)
     setAnswer('')
+    setSources([])
 
     try {
       const res = await fetch(`${API_URL}/chat`, {
@@ -57,8 +63,10 @@ function App() {
 
       const data: ChatResponse = await res.json()
       setAnswer(data.answer)
+      setSources(data.sources)
     } catch (err) {
       setAnswer('Something went wrong. Is the backend running?')
+      setSources([])
       console.error('Chat request failed:', err)
     } finally {
       setLoading(false)
@@ -131,7 +139,21 @@ function App() {
                 {loading ? 'Sending...' : 'Send'}
               </button>
             </form>
+
             {answer && <p className="answer">{answer}</p>}
+
+            {sources.length > 0 && (
+              <div className="sources">
+                <h4>Sources</h4>
+                <ul>
+                  {sources.map((source, idx) => (
+                    <li key={idx}>
+                      {source.document} — score: {source.score.toFixed(4)}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
           </section>
         )}
 
