@@ -1,7 +1,7 @@
 import json
 
 from services.llm import call_llm
-from services.long_term_memory import get_facts
+from services.long_term_memory import get_preferences
 from services.tools import get_user_courses, search_courses, search_knowledge
 
 ALLOWED_TOOLS = {
@@ -89,26 +89,38 @@ def _execute_tool(tool_name: str, arguments: dict, contextual_query: str) -> dic
         return {"answer": f"Tool execution error: {exc}", "sources": []}
 
 
-def _summarize(
-    tool_name: str, tool_result: dict, query: str, history: list, facts: list
-) -> str:
-    """Send the tool result and facts back to the LLM and ask for a final answer."""
+def _build_profile_text(preferences: dict) -> str:
+    """Format stored preferences for the final answer prompt."""
     try:
-        if facts:
-            facts_text = "User facts:\n" + "\n".join(f"- {fact}" for fact in facts)
-        else:
-            facts_text = "User facts: none saved."
+        if not preferences:
+            return "User profile: none saved."
+
+        lines = "User profile:\n" + "\n".join(
+            f"- {key}: {value}" for key, value in preferences.items()
+        )
+        return lines
+    except Exception:
+        return "User profile: none saved."
+
+
+def _summarize(
+    tool_name: str, tool_result: dict, query: str, history: list, preferences: dict
+) -> str:
+    """Send the tool result and profile back to the LLM and ask for a final answer."""
+    try:
+        profile_text = _build_profile_text(preferences)
 
         prompt = (
-            f"{facts_text}\n\n"
+            f"{profile_text}\n\n"
             f"Tool used: {tool_name}\n"
             f"Tool result: {tool_result['answer']}\n\n"
             f"Question: {query}\n\n"
-            "Provide a concise final answer to the user."
+            "Provide a concise final answer to the user. "
+            "When the question asks about the user's preferences, use the profile above."
         )
         return call_llm(
             prompt,
-            system_prompt="You are a helpful assistant. Use the conversation history, tool result, and user facts when you answer.",
+            system_prompt="You are a helpful assistant. Use the conversation history, tool result, and user profile when you answer.",
             history=history,
         )
     except Exception:
@@ -119,7 +131,7 @@ def handle_user_query(query: str, history: list | None = None) -> dict:
     """Run one cycle: request tool call, execute it, summarize the result."""
     try:
         history = history or []
-        facts = get_facts()
+        preferences = get_preferences()
         contextual_query = _build_contextual_query(history, query)
 
         tool_call = _request_tool_call(contextual_query)
@@ -130,7 +142,7 @@ def handle_user_query(query: str, history: list | None = None) -> dict:
             arguments = {}
 
         tool_result = _execute_tool(tool_name, arguments, contextual_query)
-        final_answer = _summarize(tool_name, tool_result, query, history, facts)
+        final_answer = _summarize(tool_name, tool_result, query, history, preferences)
 
         return {"answer": final_answer, "sources": tool_result.get("sources", [])}
     except Exception as exc:

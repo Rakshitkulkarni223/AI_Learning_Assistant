@@ -21,7 +21,7 @@ interface SearchResponse {
 }
 
 interface MemoryResponse {
-  facts: string[]
+  preferences: Record<string, string>
 }
 
 type Tab = 'chat' | 'search' | 'courses' | 'memory'
@@ -39,7 +39,7 @@ function App() {
   const [searchResults, setSearchResults] = useState<SearchResponse['results']>([])
   const [searching, setSearching] = useState(false)
 
-  const [facts, setFacts] = useState<string[]>([])
+  const [preferences, setPreferences] = useState<Record<string, string>>({})
   const [factInput, setFactInput] = useState('')
   const [saving, setSaving] = useState(false)
 
@@ -56,13 +56,13 @@ function App() {
     }
   }
 
-  const loadFacts = async () => {
+  const loadPreferences = async () => {
     try {
       const res = await fetch(`${API_URL}/memory`)
       const data: MemoryResponse = await res.json()
-      setFacts(data.facts)
+      setPreferences(data.preferences)
     } catch (err) {
-      console.error('Failed to load facts:', err)
+      console.error('Failed to load preferences:', err)
     }
   }
 
@@ -132,34 +132,34 @@ function App() {
 
       if (res.ok) {
         setFactInput('')
-        await loadFacts()
+        await loadPreferences()
       } else {
-        console.error('Failed to save fact')
+        console.error('Failed to save preference')
       }
     } catch (err) {
-      console.error('Error saving fact:', err)
+      console.error('Error saving preference:', err)
     } finally {
       setSaving(false)
     }
   }
 
-  const clearAllFacts = async () => {
+  const clearAllPreferences = async () => {
     try {
       const res = await fetch(`${API_URL}/memory`, { method: 'DELETE' })
       if (res.ok) {
-        setFacts([])
+        setPreferences({})
       } else {
-        console.error('Failed to clear facts')
+        console.error('Failed to clear preferences')
       }
     } catch (err) {
-      console.error('Error clearing facts:', err)
+      console.error('Error clearing preferences:', err)
     }
   }
 
   useEffect(() => {
     try {
       checkHealth()
-      loadFacts()
+      loadPreferences()
     } catch (err) {
       console.error('useEffect error:', err)
     }
@@ -265,7 +265,7 @@ function App() {
               <input
                 value={factInput}
                 onChange={(e) => setFactInput(e.target.value)}
-                placeholder="I want to learn React..."
+                placeholder="I want to learn React first..."
                 className="chat-input"
               />
               <button type="submit" disabled={saving} className="chat-button">
@@ -273,19 +273,21 @@ function App() {
               </button>
             </form>
 
-            {facts.length > 0 ? (
+            {Object.keys(preferences).length > 0 ? (
               <>
                 <ul className="memory-list">
-                  {facts.map((fact, idx) => (
-                    <li key={idx}>{fact}</li>
+                  {Object.entries(preferences).map(([key, value]) => (
+                    <li key={key}>
+                      <strong>{key}:</strong> {value}
+                    </li>
                   ))}
                 </ul>
-                <button onClick={clearAllFacts} className="clear-button">
+                <button onClick={clearAllPreferences} className="clear-button">
                   Clear all
                 </button>
               </>
             ) : (
-              <p>No saved facts yet.</p>
+              <p>No saved preferences yet.</p>
             )}
           </section>
         )}

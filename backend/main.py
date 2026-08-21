@@ -6,7 +6,8 @@ from pydantic import BaseModel
 
 from services.agent import handle_user_query
 from services.embeddings import get_collection
-from services.long_term_memory import clear_facts, get_facts, store_fact
+from services.long_term_memory import clear_preferences, get_preferences, store_preference
+from services.memory_extractor import extract_preference
 from services.short_term_memory import add_message, get_messages
 
 app = FastAPI(title="AI Learning Assistant", version="0.1.0")
@@ -106,14 +107,16 @@ def search(request: SearchRequest):
 
 @app.post("/memory")
 def store_memory(request: MemoryRequest):
-    """Save a user fact to long-term memory."""
+    """Extract and store a user preference from natural language."""
     try:
         fact = request.fact.strip()
         if not fact:
             raise HTTPException(status_code=400, detail="Fact cannot be empty")
 
-        store_fact(fact)
-        return {"status": "ok"}
+        key, value = extract_preference(fact)
+        store_preference(key, value)
+
+        return {"status": "ok", "key": key, "value": value}
     except HTTPException:
         raise
     except Exception as exc:
@@ -122,18 +125,18 @@ def store_memory(request: MemoryRequest):
 
 @app.get("/memory")
 def read_memory():
-    """Return all saved user facts."""
+    """Return all stored user preferences."""
     try:
-        return {"facts": get_facts()}
+        return {"preferences": get_preferences()}
     except Exception as exc:
         raise HTTPException(status_code=500, detail=str(exc))
 
 
 @app.delete("/memory")
 def delete_memory():
-    """Clear all saved user facts."""
+    """Clear all stored user preferences."""
     try:
-        clear_facts()
+        clear_preferences()
         return {"status": "ok"}
     except Exception as exc:
         raise HTTPException(status_code=500, detail=str(exc))

@@ -10,10 +10,10 @@ def _get_connection():
         conn = sqlite3.connect(str(DB_PATH))
         conn.execute(
             """
-            CREATE TABLE IF NOT EXISTS facts (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                fact TEXT NOT NULL,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            CREATE TABLE IF NOT EXISTS preferences (
+                key TEXT PRIMARY KEY,
+                value TEXT NOT NULL,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
             """
         )
@@ -23,37 +23,40 @@ def _get_connection():
         raise RuntimeError(f"Failed to open memory database: {exc}")
 
 
-def store_fact(fact: str) -> None:
-    """Save a new user fact."""
+def store_preference(key: str, value: str) -> None:
+    """Save or overwrite a user preference."""
     try:
         conn = _get_connection()
-        conn.execute("INSERT INTO facts (fact) VALUES (?)", (fact.strip(),))
+        conn.execute(
+            "INSERT OR REPLACE INTO preferences (key, value) VALUES (?, ?)",
+            (key, value),
+        )
         conn.commit()
         conn.close()
     except Exception as exc:
-        print(f"Error storing fact: {exc}")
+        print(f"Error storing preference: {exc}")
 
 
-def get_facts() -> list[str]:
-    """Return all saved user facts."""
+def get_preferences() -> dict[str, str]:
+    """Return all user preferences as a key-value dictionary."""
     try:
         conn = _get_connection()
         rows = conn.execute(
-            "SELECT fact FROM facts ORDER BY created_at DESC"
+            "SELECT key, value FROM preferences ORDER BY key"
         ).fetchall()
         conn.close()
-        return [row[0] for row in rows]
+        return {key: value for key, value in rows}
     except Exception as exc:
-        print(f"Error getting facts: {exc}")
-        return []
+        print(f"Error getting preferences: {exc}")
+        return {}
 
 
-def clear_facts() -> None:
-    """Delete all saved user facts."""
+def clear_preferences() -> None:
+    """Delete all stored user preferences."""
     try:
         conn = _get_connection()
-        conn.execute("DELETE FROM facts")
+        conn.execute("DELETE FROM preferences")
         conn.commit()
         conn.close()
     except Exception as exc:
-        print(f"Error clearing facts: {exc}")
+        print(f"Error clearing preferences: {exc}")

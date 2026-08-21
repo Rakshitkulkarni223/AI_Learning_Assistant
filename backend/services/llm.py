@@ -18,6 +18,7 @@ def call_llm(
     user_message: str,
     system_prompt: str | None = None,
     history: list[dict] | None = None,
+    temperature: float = 0.7,
 ) -> str:
     """Send a user message to an OpenAI-compatible API and return the text answer."""
     try:
@@ -46,7 +47,7 @@ def call_llm(
         response = client.chat.completions.create(
             model=LLM_MODEL,
             messages=messages,
-            temperature=0.7,
+            temperature=temperature,
         )
 
         return response.choices[0].message.content.strip()
