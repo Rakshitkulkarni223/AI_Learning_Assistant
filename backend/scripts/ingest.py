@@ -14,8 +14,8 @@ BASE_DIR = Path(__file__).parent.parent
 DOCUMENTS_DIR = BASE_DIR / "documents"
 CHROMA_DIR = BASE_DIR.parent / "chroma"
 
-CHUNK_SIZE = 500
-CHUNK_OVERLAP = 50
+CHUNK_SIZE = int(os.getenv("CHUNK_SIZE", "500"))
+CHUNK_OVERLAP = int(os.getenv("CHUNK_OVERLAP", "50"))
 
 EMBEDDING_MODEL = os.getenv("EMBEDDING_MODEL", "nomic-embed-text")
 OLLAMA_BASE_URL = os.getenv("OPENAI_BASE_URL", "http://localhost:11434/v1")
@@ -67,6 +67,12 @@ def store_chunks(chunks):
     try:
         client = chromadb.PersistentClient(path=str(CHROMA_DIR))
 
+        # Wipe old data so a new chunk size creates a fresh collection.
+        try:
+            client.delete_collection("knowledge")
+        except Exception:
+            pass
+
         embedding_function = OpenAIEmbeddingFunction(
             api_key=OLLAMA_API_KEY,
             api_base=OLLAMA_BASE_URL,
@@ -96,6 +102,8 @@ def store_chunks(chunks):
 
 def main():
     try:
+        print(f"Using CHUNK_SIZE={CHUNK_SIZE}, CHUNK_OVERLAP={CHUNK_OVERLAP}")
+
         documents = load_documents()
         print(f"Documents loaded: {len(documents)}")
 
