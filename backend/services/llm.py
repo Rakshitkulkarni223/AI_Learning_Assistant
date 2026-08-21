@@ -14,7 +14,11 @@ DEFAULT_SYSTEM_PROMPT = (
 )
 
 
-def call_llm(user_message: str, system_prompt: str | None = None) -> str:
+def call_llm(
+    user_message: str,
+    system_prompt: str | None = None,
+    history: list[dict] | None = None,
+) -> str:
     """Send a user message to an OpenAI-compatible API and return the text answer."""
     try:
         api_key = os.getenv("OPENAI_API_KEY")
@@ -28,15 +32,20 @@ def call_llm(user_message: str, system_prompt: str | None = None) -> str:
 
         client = OpenAI(**client_kwargs)
 
+        messages = []
+        if system_prompt:
+            messages.append({"role": "system", "content": system_prompt})
+        else:
+            messages.append({"role": "system", "content": DEFAULT_SYSTEM_PROMPT})
+
+        if history:
+            messages.extend(history)
+
+        messages.append({"role": "user", "content": user_message})
+
         response = client.chat.completions.create(
             model=LLM_MODEL,
-            messages=[
-                {
-                    "role": "system",
-                    "content": system_prompt if system_prompt else DEFAULT_SYSTEM_PROMPT,
-                },
-                {"role": "user", "content": user_message},
-            ],
+            messages=messages,
             temperature=0.7,
         )
 

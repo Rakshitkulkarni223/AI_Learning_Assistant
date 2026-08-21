@@ -23,6 +23,23 @@ TOOL_SCHEMA_PROMPT = (
 )
 
 
+def _build_contextual_query(history: list, query: str) -> str:
+    """Combine previous messages with the current question."""
+    try:
+        if not history:
+            return query
+
+        lines = []
+        for message in history:
+            role = "User" if message["role"] == "user" else "Assistant"
+            lines.append(f"{role}: {message['content']}")
+        lines.append(f"User: {query}")
+
+        return "\n".join(lines)
+    except Exception:
+        return query
+
+
 def _extract_json(text: str) -> dict | None:
     """Pull the first JSON object out of the LLM response."""
     try:
@@ -35,22 +52,22 @@ def _extract_json(text: str) -> dict | None:
         return None
 
 
-def _request_tool_call(query: str) -> dict:
+def _request_tool_call(contextual_query: str) -> dict:
     """Ask the LLM which tool to call, in JSON form."""
     try:
-        prompt = f"User question: {query}\nTool call JSON:"
+        prompt = f"User question: {contextual_query}\nTool call JSON:"
         raw = call_llm(prompt, system_prompt=TOOL_SCHEMA_PROMPT)
         parsed = _extract_json(raw)
 
         if not parsed or parsed.get("tool") not in ALLOWED_TOOLS:
-            return {"tool": "search_knowledge", "arguments": {"query": query}}
+            return {"tool": "search_knowledge", "arguments": {"query": contextual_query}}
 
         return parsed
     except Exception:
-        return {"tool": "search_knowledge", "arguments": {"query": query}}
+        return {"tool": "search_knowledge", "arguments": {"query": contextual_query}}
 
 
-def _execute_tool(tool_name: str, arguments: dict, fallback_query: str) -> dict:
+def _execute_tool(tool_name: str, arguments: dict, contextual_query: str) -> dict:
     """Validate the tool name and run the matching function."""
     try:
         if tool_name not in ALLOWED_TOOLS:
@@ -65,41 +82,45 @@ def _execute_tool(tool_name: str, arguments: dict, fallback_query: str) -> dict:
             return ALLOWED_TOOLS[tool_name](arguments.get("query", ""))
         else:
             return ALLOWED_TOOLS[tool_name](
-                arguments.get("query", fallback_query)
+                arguments.get("query", contextual_query)
             )
     except Exception as exc:
         return {"answer": f"Tool execution error: {exc}", "sources": []}
 
 
-def _summarize(tool_name: str, tool_result: dict, query: str) -> str:
+def _summarize(tool_name: str, tool_result: dict, query: str, history: list) -> str:
     """Send the tool result back to the LLM and ask for a final answer."""
     try:
         prompt = (
-            f"User question: {query}\n"
             f"Tool used: {tool_name}\n"
             f"Tool result: {tool_result['answer']}\n\n"
+            f"Question: {query}\n\n"
             "Provide a concise final answer to the user."
         )
         return call_llm(
             prompt,
-            system_prompt="You are a helpful assistant. Answer using the tool result.",
+            system_prompt="You are a helpful assistant. Answer using the tool result and the conversation history.",
+            history=history,
         )
     except Exception:
         return tool_result["answer"]
 
 
-def handle_user_query(query: str) -> dict:
+def handle_user_query(query: str, history: list | None = None) -> dict:
     """Run one cycle: request tool call, execute it, summarize the result."""
     try:
-        tool_call = _request_tool_call(query)
+        history = history or []
+        contextual_query = _build_contextual_query(history, query)
+
+        tool_call = _request_tool_call(contextual_query)
         tool_name = tool_call.get("tool", "search_knowledge")
         arguments = tool_call.get("arguments", {})
 
         if not isinstance(arguments, dict):
             arguments = {}
 
-        tool_result = _execute_tool(tool_name, arguments, query)
-        final_answer = _summarize(tool_name, tool_result, query)
+        tool_result = _execute_tool(tool_name, arguments, contextual_query)
+        final_answer = _summarize(tool_name, tool_result, query, history)
 
         return {"answer": final_answer, "sources": tool_result.get("sources", [])}
     except Exception as exc:

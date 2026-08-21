@@ -1,9 +1,12 @@
+import uuid
+
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
 from services.agent import handle_user_query
 from services.embeddings import get_collection
+from services.short_term_memory import add_message, get_messages
 
 app = FastAPI(title="AI Learning Assistant", version="0.1.0")
 
@@ -18,6 +21,7 @@ app.add_middleware(
 
 class ChatRequest(BaseModel):
     message: str
+    session_id: str | None = None
 
 
 class SearchRequest(BaseModel):
@@ -35,14 +39,31 @@ def health_check():
 
 @app.post("/chat")
 def chat(request: ChatRequest):
-    """Route the user message through the simple agent."""
+    """Route the user message through the agent with short-term memory."""
     try:
         user_message = request.message.strip()
 
         if not user_message:
-            return {"answer": "Please send a message.", "sources": []}
+            return {
+                "answer": "Please send a message.",
+                "sources": [],
+                "session_id": request.session_id or "",
+            }
 
-        return handle_user_query(user_message)
+        session_id = request.session_id or str(uuid.uuid4())
+
+        add_message(session_id, "user", user_message)
+        history = get_messages(session_id)[:-1]
+
+        result = handle_user_query(user_message, history=history)
+
+        add_message(session_id, "assistant", result["answer"])
+
+        return {
+            "answer": result["answer"],
+            "sources": result.get("sources", []),
+            "session_id": session_id,
+        }
     except Exception as exc:
         raise HTTPException(status_code=500, detail=str(exc))
 

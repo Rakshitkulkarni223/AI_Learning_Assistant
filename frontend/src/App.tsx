@@ -9,6 +9,7 @@ interface ChatResponse {
     document: string
     score: number
   }[]
+  session_id: string
 }
 
 interface SearchResponse {
@@ -28,6 +29,7 @@ function App() {
   const [answer, setAnswer] = useState('')
   const [sources, setSources] = useState<ChatResponse['sources']>([])
   const [loading, setLoading] = useState(false)
+  const [sessionId, setSessionId] = useState<string | null>(null)
 
   const [query, setQuery] = useState('')
   const [searchResults, setSearchResults] = useState<SearchResponse['results']>([])
@@ -58,12 +60,13 @@ function App() {
       const res = await fetch(`${API_URL}/chat`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message }),
+        body: JSON.stringify({ message, session_id: sessionId }),
       })
 
       const data: ChatResponse = await res.json()
       setAnswer(data.answer)
       setSources(data.sources ?? [])
+      setSessionId(data.session_id)
     } catch (err) {
       setAnswer('Something went wrong. Is the backend running?')
       setSources([])
@@ -128,6 +131,9 @@ function App() {
         {activeTab === 'chat' && (
           <section className="section">
             <h2>Chat</h2>
+            {sessionId && (
+              <p className="session-id">Session: {sessionId.split('-')[0]}...</p>
+            )}
             <form onSubmit={sendMessage} className="chat-form">
               <input
                 value={message}
