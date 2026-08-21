@@ -1,5 +1,13 @@
+import os
+
+from dotenv import load_dotenv
+
+load_dotenv()
+
 from services.embeddings import get_collection
 from services.llm import call_llm
+
+SIMILARITY_THRESHOLD = float(os.getenv("SIMILARITY_THRESHOLD", "0.3"))
 
 RAG_SYSTEM_PROMPT = (
     "You are a helpful AI Learning Assistant. "
@@ -21,6 +29,14 @@ def answer_with_rag(query: str) -> dict:
         )
 
         if not matches["documents"] or not matches["documents"][0]:
+            return {
+                "answer": "I don't know based on the available documents.",
+                "sources": [],
+            }
+
+        best_score = matches["distances"][0][0]
+
+        if best_score > SIMILARITY_THRESHOLD:
             return {
                 "answer": "I don't know based on the available documents.",
                 "sources": [],
