@@ -15,5 +15,8 @@ dist/
 # ChromaDB storage
 chroma/
 
+# SQLite databases
+*.db
+
 # OS
 .DS_Store

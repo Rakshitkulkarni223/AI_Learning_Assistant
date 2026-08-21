@@ -137,3 +137,23 @@ body {
   color: #888;
   margin-bottom: 0.5rem;
 }
+
+.memory-list {
+  margin-top: 1rem;
+  padding-left: 1.2rem;
+  color: #333;
+}
+
+.memory-list li {
+  margin-bottom: 0.4rem;
+}
+
+.clear-button {
+  margin-top: 1rem;
+  padding: 0.5rem 1rem;
+  background: #fff;
+  border: 1px solid #c00;
+  color: #c00;
+  border-radius: 4px;
+  cursor: pointer;
+}

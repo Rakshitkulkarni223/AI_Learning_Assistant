@@ -20,6 +20,10 @@ interface SearchResponse {
   }[]
 }
 
+interface MemoryResponse {
+  facts: string[]
+}
+
 type Tab = 'chat' | 'search' | 'courses' | 'memory'
 
 function App() {
@@ -35,6 +39,10 @@ function App() {
   const [searchResults, setSearchResults] = useState<SearchResponse['results']>([])
   const [searching, setSearching] = useState(false)
 
+  const [facts, setFacts] = useState<string[]>([])
+  const [factInput, setFactInput] = useState('')
+  const [saving, setSaving] = useState(false)
+
   const [health, setHealth] = useState<string | null>(null)
 
   const checkHealth = async () => {
@@ -45,6 +53,16 @@ function App() {
     } catch (err) {
       setHealth('offline')
       console.error('Health check failed:', err)
+    }
+  }
+
+  const loadFacts = async () => {
+    try {
+      const res = await fetch(`${API_URL}/memory`)
+      const data: MemoryResponse = await res.json()
+      setFacts(data.facts)
+    } catch (err) {
+      console.error('Failed to load facts:', err)
     }
   }
 
@@ -100,9 +118,48 @@ function App() {
     }
   }
 
+  const saveFact = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!factInput.trim()) return
+
+    setSaving(true)
+    try {
+      const res = await fetch(`${API_URL}/memory`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ fact: factInput }),
+      })
+
+      if (res.ok) {
+        setFactInput('')
+        await loadFacts()
+      } else {
+        console.error('Failed to save fact')
+      }
+    } catch (err) {
+      console.error('Error saving fact:', err)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const clearAllFacts = async () => {
+    try {
+      const res = await fetch(`${API_URL}/memory`, { method: 'DELETE' })
+      if (res.ok) {
+        setFacts([])
+      } else {
+        console.error('Failed to clear facts')
+      }
+    } catch (err) {
+      console.error('Error clearing facts:', err)
+    }
+  }
+
   useEffect(() => {
     try {
       checkHealth()
+      loadFacts()
     } catch (err) {
       console.error('useEffect error:', err)
     }
@@ -204,7 +261,32 @@ function App() {
         {activeTab === 'memory' && (
           <section className="section">
             <h2>Memory</h2>
-            <p>Coming soon...</p>
+            <form onSubmit={saveFact} className="chat-form">
+              <input
+                value={factInput}
+                onChange={(e) => setFactInput(e.target.value)}
+                placeholder="I want to learn React..."
+                className="chat-input"
+              />
+              <button type="submit" disabled={saving} className="chat-button">
+                {saving ? 'Saving...' : 'Save'}
+              </button>
+            </form>
+
+            {facts.length > 0 ? (
+              <>
+                <ul className="memory-list">
+                  {facts.map((fact, idx) => (
+                    <li key={idx}>{fact}</li>
+                  ))}
+                </ul>
+                <button onClick={clearAllFacts} className="clear-button">
+                  Clear all
+                </button>
+              </>
+            ) : (
+              <p>No saved facts yet.</p>
+            )}
           </section>
         )}
       </main>

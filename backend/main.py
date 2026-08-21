@@ -6,6 +6,7 @@ from pydantic import BaseModel
 
 from services.agent import handle_user_query
 from services.embeddings import get_collection
+from services.long_term_memory import clear_facts, get_facts, store_fact
 from services.short_term_memory import add_message, get_messages
 
 app = FastAPI(title="AI Learning Assistant", version="0.1.0")
@@ -26,6 +27,10 @@ class ChatRequest(BaseModel):
 
 class SearchRequest(BaseModel):
     query: str
+
+
+class MemoryRequest(BaseModel):
+    fact: str
 
 
 @app.get("/health")
@@ -95,5 +100,40 @@ def search(request: SearchRequest):
             )
 
         return {"results": results}
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=str(exc))
+
+
+@app.post("/memory")
+def store_memory(request: MemoryRequest):
+    """Save a user fact to long-term memory."""
+    try:
+        fact = request.fact.strip()
+        if not fact:
+            raise HTTPException(status_code=400, detail="Fact cannot be empty")
+
+        store_fact(fact)
+        return {"status": "ok"}
+    except HTTPException:
+        raise
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=str(exc))
+
+
+@app.get("/memory")
+def read_memory():
+    """Return all saved user facts."""
+    try:
+        return {"facts": get_facts()}
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=str(exc))
+
+
+@app.delete("/memory")
+def delete_memory():
+    """Clear all saved user facts."""
+    try:
+        clear_facts()
+        return {"status": "ok"}
     except Exception as exc:
         raise HTTPException(status_code=500, detail=str(exc))

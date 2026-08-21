@@ -1,6 +1,7 @@
 import json
 
 from services.llm import call_llm
+from services.long_term_memory import get_facts
 from services.tools import get_user_courses, search_courses, search_knowledge
 
 ALLOWED_TOOLS = {
@@ -88,10 +89,18 @@ def _execute_tool(tool_name: str, arguments: dict, contextual_query: str) -> dic
         return {"answer": f"Tool execution error: {exc}", "sources": []}
 
 
-def _summarize(tool_name: str, tool_result: dict, query: str, history: list) -> str:
-    """Send the tool result back to the LLM and ask for a final answer."""
+def _summarize(
+    tool_name: str, tool_result: dict, query: str, history: list, facts: list
+) -> str:
+    """Send the tool result and facts back to the LLM and ask for a final answer."""
     try:
+        if facts:
+            facts_text = "User facts:\n" + "\n".join(f"- {fact}" for fact in facts)
+        else:
+            facts_text = "User facts: none saved."
+
         prompt = (
+            f"{facts_text}\n\n"
             f"Tool used: {tool_name}\n"
             f"Tool result: {tool_result['answer']}\n\n"
             f"Question: {query}\n\n"
@@ -99,7 +108,7 @@ def _summarize(tool_name: str, tool_result: dict, query: str, history: list) -> 
         )
         return call_llm(
             prompt,
-            system_prompt="You are a helpful assistant. Answer using the tool result and the conversation history.",
+            system_prompt="You are a helpful assistant. Use the conversation history, tool result, and user facts when you answer.",
             history=history,
         )
     except Exception:
@@ -110,6 +119,7 @@ def handle_user_query(query: str, history: list | None = None) -> dict:
     """Run one cycle: request tool call, execute it, summarize the result."""
     try:
         history = history or []
+        facts = get_facts()
         contextual_query = _build_contextual_query(history, query)
 
         tool_call = _request_tool_call(contextual_query)
@@ -120,7 +130,7 @@ def handle_user_query(query: str, history: list | None = None) -> dict:
             arguments = {}
 
         tool_result = _execute_tool(tool_name, arguments, contextual_query)
-        final_answer = _summarize(tool_name, tool_result, query, history)
+        final_answer = _summarize(tool_name, tool_result, query, history, facts)
 
         return {"answer": final_answer, "sources": tool_result.get("sources", [])}
     except Exception as exc:
