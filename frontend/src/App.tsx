@@ -81,6 +81,14 @@ function App() {
         body: JSON.stringify({ message, session_id: sessionId }),
       })
 
+      if (!res.ok) {
+        const err = await res.json()
+        setAnswer(err.detail || 'Something went wrong.')
+        setSources([])
+        setLoading(false)
+        return
+      }
+
       const data: ChatResponse = await res.json()
       setAnswer(data.answer)
       setSources(data.sources ?? [])
@@ -108,6 +116,14 @@ function App() {
         body: JSON.stringify({ query }),
       })
 
+      if (!res.ok) {
+        const err = await res.json()
+        console.error('Search failed:', err.detail || res.statusText)
+        setSearchResults([])
+        setSearching(false)
+        return
+      }
+
       const data: SearchResponse = await res.json()
       setSearchResults(data.results)
     } catch (err) {
@@ -130,12 +146,15 @@ function App() {
         body: JSON.stringify({ fact: factInput }),
       })
 
-      if (res.ok) {
-        setFactInput('')
-        await loadPreferences()
-      } else {
-        console.error('Failed to save preference')
+      if (!res.ok) {
+        const err = await res.json()
+        console.error('Failed to save preference:', err.detail || res.statusText)
+        setSaving(false)
+        return
       }
+
+      setFactInput('')
+      await loadPreferences()
     } catch (err) {
       console.error('Error saving preference:', err)
     } finally {
@@ -149,7 +168,8 @@ function App() {
       if (res.ok) {
         setPreferences({})
       } else {
-        console.error('Failed to clear preferences')
+        const err = await res.json()
+        console.error('Failed to clear preferences:', err.detail || res.statusText)
       }
     } catch (err) {
       console.error('Error clearing preferences:', err)

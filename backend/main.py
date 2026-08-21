@@ -1,6 +1,6 @@
 import uuid
 
-from fastapi import FastAPI, HTTPException
+from fastapi import Depends, FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
@@ -8,6 +8,7 @@ from services.agent import handle_user_query
 from services.embeddings import get_collection
 from services.long_term_memory import clear_preferences, get_preferences, store_preference
 from services.memory_extractor import extract_preference
+from services.rate_limiter import rate_limit
 from services.short_term_memory import add_message, get_messages
 
 app = FastAPI(title="AI Learning Assistant", version="0.1.0")
@@ -44,7 +45,7 @@ def health_check():
 
 
 @app.post("/chat")
-def chat(request: ChatRequest):
+def chat(request: ChatRequest, _client: str = Depends(rate_limit)):
     """Route the user message through the agent with short-term memory."""
     try:
         user_message = request.message.strip()
@@ -75,7 +76,7 @@ def chat(request: ChatRequest):
 
 
 @app.post("/search")
-def search(request: SearchRequest):
+def search(request: SearchRequest, _client: str = Depends(rate_limit)):
     """Find the most similar chunks for the user's query."""
     try:
         query = request.query.strip()
@@ -106,7 +107,7 @@ def search(request: SearchRequest):
 
 
 @app.post("/memory")
-def store_memory(request: MemoryRequest):
+def store_memory(request: MemoryRequest, _client: str = Depends(rate_limit)):
     """Extract and store a user preference from natural language."""
     try:
         fact = request.fact.strip()
