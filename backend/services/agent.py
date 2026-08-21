@@ -57,11 +57,16 @@ def _request_tool_call(contextual_query: str) -> dict:
     """Ask the LLM which tool to call, in JSON form."""
     try:
         prompt = f"User question: {contextual_query}\nTool call JSON:"
-        raw = call_llm(prompt, system_prompt=TOOL_SCHEMA_PROMPT)
+        raw = call_llm(prompt, system_prompt=TOOL_SCHEMA_PROMPT, temperature=0.0)[
+            "answer"
+        ]
         parsed = _extract_json(raw)
 
         if not parsed or parsed.get("tool") not in ALLOWED_TOOLS:
-            return {"tool": "search_knowledge", "arguments": {"query": contextual_query}}
+            return {
+                "tool": "search_knowledge",
+                "arguments": {"query": contextual_query},
+            }
 
         return parsed
     except Exception:
@@ -118,11 +123,12 @@ def _summarize(
             "Provide a concise final answer to the user. "
             "When the question asks about the user's preferences, use the profile above."
         )
-        return call_llm(
+        result = call_llm(
             prompt,
             system_prompt="You are a helpful assistant. Use the conversation history, tool result, and user profile when you answer.",
             history=history,
         )
+        return result["answer"]
     except Exception:
         return tool_result["answer"]
 

@@ -60,8 +60,8 @@ def answer_with_rag(query: str) -> dict:
             "'I don't know based on the available documents.'"
         )
 
-        answer = call_llm(prompt, system_prompt=RAG_SYSTEM_PROMPT)
+        result = call_llm(prompt, system_prompt=RAG_SYSTEM_PROMPT)
 
-        return {"answer": answer, "sources": sources}
+        return {"answer": result["answer"], "sources": sources}
     except Exception as exc:
         return {"answer": f"RAG error: {exc}", "sources": []}

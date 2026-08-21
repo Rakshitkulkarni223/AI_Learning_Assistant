@@ -10,6 +10,14 @@ interface ChatResponse {
     score: number
   }[]
   session_id: string
+  metrics: {
+    input_tokens: number
+    output_tokens: number
+    total_tokens: number
+    latency_ms: number
+    cost_usd: number
+    calls: number
+  }
 }
 
 interface SearchResponse {
@@ -32,6 +40,7 @@ function App() {
   const [message, setMessage] = useState('')
   const [answer, setAnswer] = useState('')
   const [sources, setSources] = useState<ChatResponse['sources']>([])
+  const [metrics, setMetrics] = useState<ChatResponse['metrics'] | null>(null)
   const [loading, setLoading] = useState(false)
   const [sessionId, setSessionId] = useState<string | null>(null)
 
@@ -73,6 +82,7 @@ function App() {
     setLoading(true)
     setAnswer('')
     setSources([])
+    setMetrics(null)
 
     try {
       const res = await fetch(`${API_URL}/chat`, {
@@ -92,6 +102,7 @@ function App() {
       const data: ChatResponse = await res.json()
       setAnswer(data.answer)
       setSources(data.sources ?? [])
+      setMetrics(data.metrics)
       setSessionId(data.session_id)
     } catch (err) {
       setAnswer('Something went wrong. Is the backend running?')
@@ -224,6 +235,12 @@ function App() {
             </form>
 
             {answer && <p className="answer">{answer}</p>}
+
+            {metrics && metrics.calls > 0 && (
+              <div className="metrics">
+                Tokens: {metrics.input_tokens} in + {metrics.output_tokens} out = {metrics.total_tokens} total | {metrics.latency_ms.toFixed(0)} ms | {metrics.calls} call(s) | ${metrics.cost_usd.toFixed(6)}
+              </div>
+            )}
 
             {sources.length > 0 && (
               <div className="sources">

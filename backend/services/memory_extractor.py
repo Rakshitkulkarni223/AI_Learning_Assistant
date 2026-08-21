@@ -20,7 +20,9 @@ EXTRACTION_PROMPT = (
 def extract_preference(fact: str) -> tuple[str, str]:
     """Turn a natural-language fact into a (key, value) pair."""
     try:
-        raw = call_llm(fact.strip(), system_prompt=EXTRACTION_PROMPT, temperature=0.0)
+        raw = call_llm(fact.strip(), system_prompt=EXTRACTION_PROMPT, temperature=0.0)[
+            "answer"
+        ]
         text = raw.strip().splitlines()[0] if raw.strip() else ""
 
         if text.startswith("{"):
